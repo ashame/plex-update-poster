@@ -26,14 +26,6 @@ headers = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:92.0) Gecko/20100101 Firefox/92.0'
 }
 
-# SSH config
-
-ssh = SSHClient()
-ssh_key = RSAKey.from_private_key_file("./whatbox.pem")
-
-ssh.set_missing_host_key_policy(AutoAddPolicy())
-ssh.connect(hostname="143.198.150.10", username="root", pkey=ssh_key)
-
 
 def generate_embed(info, show):
     if info['year'] == None:
@@ -91,7 +83,7 @@ def get_artwork_url(dbid, show):
             ssh.exec_command('curl "{server}/photo/:/transcode?width=480&height=720&url={thumb}?a=b&X-Plex-Token={token}" -o /var/www/img/plex-{type}-{id}.png'.format(
                 server=plex_server, thumb=show.thumb, token=plex_token, type=pr.group(1), id=pr.group(2)
             ))
-            return 'https://img.ashm.ca/plex-{type}-{id}.png'.format(type=pr.group(1), id=pr.group(2))
+            return '{server}/plex-{type}-{id}.png'.format(server=config['credentials']['imageServerUrl'], type=pr.group(1), id=pr.group(2))
     return None
 
 
@@ -143,6 +135,15 @@ movies = plex.library.section('Movies')
 tv = plex.library.section('TV')
 
 sections = [anime, dramas, movies, tv]
+
+# SSH config
+
+ssh = SSHClient()
+ssh_key = RSAKey.from_private_key_file(config['credentials']['sshKeyFile'])
+
+ssh.set_missing_host_key_policy(AutoAddPolicy())
+ssh.connect(hostname=config['credentials']['sshHostname'],
+            username=config['credentials']['sshUsername'], pkey=ssh_key)
 
 # Start
 
