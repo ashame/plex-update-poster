@@ -28,7 +28,7 @@ headers = {
 
 
 def generate_embed(info, show):
-    if info['year'] == None:
+    if info['year'] is None:
         return
     embed = Embed(color=colors.get(show.librarySectionTitle, 0))
     # embed.set_author(name=show.librarySectionTitle)
@@ -39,13 +39,13 @@ def generate_embed(info, show):
         studio=info['studio'], genres=', '.join(info['genres'])))
 
     artwork = get_artwork_url(info['id'], show)
-    if artwork != None:
+    if artwork is not None:
         embed.set_thumbnail(url=artwork)
     else:
-        return
+        return None
 
     db_url = get_db_url(info['id'])
-    if db_url != None:
+    if db_url is not None:
         embed.url = db_url
 
     return embed.to_dict()
@@ -53,7 +53,7 @@ def generate_embed(info, show):
 
 def generate_info(show):
     dbid = dbid_regex.match(show.guid)
-    dbid = dbid.group(1) if dbid != None else show.guid
+    dbid = dbid.group(1) if dbid is not None else show.guid
 
     info = {
         "id": dbid,
@@ -78,11 +78,12 @@ def get_artwork_url(dbid, show):
         return 'https://artworks.thetvdb.com/banners/posters/{id}-1.jpg'.format(id=id)
     if 'plex' in dbid:
         pr = re.compile('plex://(\w+)/(\w+)').match(dbid)
-        if pr != None:
+        if pr is not None:
             # /photo/:/transcode?width=480&height=720&url=/library/metadata/26982/thumb/1632127789?X-Plex-Token={token}
             ssh.exec_command('curl "{server}/photo/:/transcode?width=480&height=720&url={thumb}?a=b&X-Plex-Token={token}" -o /var/www/img/plex-{type}-{id}.png'.format(
                 server=plex_server, thumb=show.thumb, token=plex_token, type=pr.group(1), id=pr.group(2)
             ))
+            time.sleep(2.0)
             return '{server}/plex-{type}-{id}.png'.format(server=config['credentials']['imageServerUrl'], type=pr.group(1), id=pr.group(2))
     return None
 
@@ -103,7 +104,7 @@ def get_db_url(dbid):
 def get_recently_added():
     recentlyAdded = []
     for section in sections:
-        for show in section.recentlyAdded(maxresults=2):
+        for show in section.recentlyAdded(maxresults=7):
             recentlyAdded.append(show)
     return recentlyAdded
 
@@ -162,7 +163,7 @@ while True:
 
         embed = generate_embed(info, show)
 
-        if embed != None:
+        if embed is not None:
             print(
                 '[{timestamp}] [info] new show detected: `{title} ({year}) [{id}]`'.format(timestamp=datetime.datetime.now().strftime("%H:%M:%S.3%f")[:-4], title=info['title'], year=info['year'], id=info['id']))
 
