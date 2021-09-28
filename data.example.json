@@ -1,0 +1,9 @@
+{
+    "credentials": {
+        "plexServerUrl": "",
+        "plexToken": "",
+        "webhookUrl": ""
+    },
+    "parsed": {},
+    "refreshInterval": 60.0
+}
