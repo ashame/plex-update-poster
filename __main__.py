@@ -104,7 +104,7 @@ def get_db_url(dbid):
 def get_recently_added():
     recentlyAdded = []
     for section in sections:
-        for show in section.recentlyAdded(maxresults=7):
+        for show in section.recentlyAdded(maxresults=15):
             recentlyAdded.append(show)
     return recentlyAdded
 
@@ -122,6 +122,7 @@ def write_config():
 # Config setup
 config = read_config()
 
+loop = config['refreshInterval'] or 60.0
 plex_server = config['credentials']['plexServerUrl']
 plex_token = config['credentials']['plexToken']
 webhook_url = config['credentials']['webhookUrl']
@@ -149,31 +150,45 @@ ssh.connect(hostname=config['credentials']['sshHostname'],
 # Start
 
 start = time.time()
-loop = config['refreshInterval'] or 60.0
 
-print('[{timestamp}] [info] refreshing every {loop} seconds.'.format(
-    loop=loop, timestamp=datetime.datetime.now().strftime("%H:%M:%S.3%f")[:-4]))
+print('[{ts}] [info] refreshing every {loop} seconds.'.format(
+    loop=loop, ts=datetime.datetime.now().strftime("%H:%M:%S.3%f")[:-4]))
 
 while True:
     for show in get_recently_added():
-        info = generate_info(show)
+        try:
+            info = generate_info(show)
 
-        if info['id'] in config['parsed']:
-            continue
+            if show.guid in config['parsed']:
+                continue
 
-        embed = generate_embed(info, show)
+            if config['ignoreNext']:
+                print(
+                    '[{ts}] [info] new show detected* - {title} ({year}) [{id}]'.format(ts=datetime.datetime.now().strftime("%H:%M:%S.3%f")[:-4], title=info['title'], year=info['year'], id=show.guid))
+                config['parsed'][show.guid] = '{title} ({year})'.format(
+                    title=info['title'], year=info['year'])
+                write_config()                
+                continue
 
-        if embed is not None:
-            print(
-                '[{timestamp}] [info] new show detected: `{title} ({year}) [{id}]`'.format(timestamp=datetime.datetime.now().strftime("%H:%M:%S.3%f")[:-4], title=info['title'], year=info['year'], id=info['id']))
+            embed = generate_embed(info, show)
 
-            res = requests.post(webhook_url, json={"embeds": [embed]})
-            res.raise_for_status()
-            config['parsed'][info['id']] = '{title} ({year})'.format(
-                title=info['title'], year=info['year'])
-            write_config()
+            if embed is not None:
+                print(
+                    '[{ts}] [info] new show detected - {title} ({year}) [{id}]`'.format(ts=datetime.datetime.now().strftime("%H:%M:%S.3%f")[:-4], title=info['title'], year=info['year'], id=show.guid))
 
-        time.sleep(3.0 - ((time.time() - start) % 3.0))
+                res = requests.post(webhook_url, json={"embeds": [embed]})
+                res.raise_for_status()
+                config['parsed'][show.guid] = '{title} ({year})'.format(
+                    title=info['title'], year=info['year'])
+                write_config()
+
+            time.sleep(3.0 - ((time.time() - start) % 3.0))
+        except:
+            print('[{ts}] [error] error running loop [{id}] - '.format(ts=datetime.datetime.now().strftime("%H:%M:%S.3%f")[:-4], id=show.guid))
+
+    if config['ignoreNext']:
+        config['ignoreNext'] = False
+        write_config()
+        
     time.sleep(loop - ((time.time() - start) % loop))
     config = read_config()
-    loop = config['refreshInterval'] or 60.0
