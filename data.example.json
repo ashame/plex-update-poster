@@ -2,7 +2,10 @@
     "credentials": {
         "plexServerUrl": "",
         "plexToken": "",
-        "webhookUrl": ""
+        "webhookUrl": "",
+        "sshHostname": "",
+        "sshUsername": "",
+        "sshKeyFile": ""
     },
     "parsed": {},
     "refreshInterval": 60.0
