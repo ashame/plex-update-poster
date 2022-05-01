@@ -1,0 +1,5 @@
+beautifulsoup4~=4.11.1
+discord.py~=1.7.3
+paramiko~=2.9.1
+PlexAPI~=4.8.0
+requests~=2.22.0
